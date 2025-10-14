@@ -1,0 +1,10 @@
+.git
+__pycache__
+*.pyc
+.venv
+.idea
+dist/
+.vscode
+.history
+.python-version
+__pycache__/

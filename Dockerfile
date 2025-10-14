@@ -1,17 +1,36 @@
+# ========================
+# 第一阶段：构建 wheel
+# ========================
+FROM ghcr.io/astral-sh/uv:python3.11-bookworm AS builder
+
+WORKDIR /app
+
+# 复制 pyproject.toml 和 uv.lock 以及源码
+COPY pyproject.toml uv.lock ./
+COPY . .
+
+# 同步依赖并构建 wheel
+RUN uv sync --frozen --no-dev \
+    && uv build --wheel --out-dir ./dist
+
+# ========================
+# 第二阶段：生产运行镜像
+# ========================
 FROM python:3.11-slim
 
 WORKDIR /app
-COPY . .
 
-# 安装系统依赖（如果需要 ffmpeg）
-RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
+# 安装系统依赖（ffmpeg）
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
 
-# 安装 uv 和项目依赖
-RUN python -m pip install --upgrade pip
-RUN pip install uv
-RUN uv pip install --system .
-RUN #uv pip install python-multipart
+# 复制 builder 阶段生成的 wheel 并安装
+COPY --from=builder /app/dist/*.whl ./dist/
+RUN pip install --no-cache-dir dist/*.whl uvicorn fastapi \
+    && rm -rf dist/*.whl
 
+# 暴露端口
 EXPOSE 80
 
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]
+# 多进程启动 uvicorn
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80", "--workers", "1"]
