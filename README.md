@@ -160,3 +160,9 @@ POST /parse/url?file_url=<签名对象存储 URL>
 * 使用 `loguru`，可扩展到文件或对象存储日志
 
 
+## 问题排查
+| 现象                                                       | 原因                                           | 一行修复                                                                                           |
+| -------------------------------------------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| 访问 `/doc_parser_service/docs` 正常，但 **/openapi.json 404** | Nginx 没有该 location，被当成静态文件                   | 在 server 块里加：<br>`location = /openapi.json { proxy_pass http://127.0.0.1:8444/openapi.json; }` |
+| 整个 `/doc_parser_service/...` 报 404                       | `proxy_pass http://127.0.0.1:8444/ ;` 行尾多了空格 | 删掉空格 → `proxy_pass http://127.0.0.1:8444/;`                                                    |
+| 上传文件 **413 Request Entity Too Large**                    | Nginx 默认只接受 1 M                              | 在 server 块顶部加：<br>`client_max_body_size 100M;` （数值按需改）<br>`nginx -s reload` 生效                 |
