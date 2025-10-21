@@ -1,7 +1,7 @@
 import httpx
 import tempfile
 import os
-from loguru import logger
+from app.utils.logger import logger
 
 class DownloadService:
     @staticmethod

@@ -2,7 +2,7 @@ from fastapi import APIRouter, UploadFile, File, Form, Body
 from app.services.parser_service import DocumentParser
 from app.services.download_service import DownloadService
 from app.models.schema import ParseUrlRequest, ParseResponse
-from loguru import logger
+from app.utils.logger import logger
 import os
 from typing import Optional
 
@@ -27,15 +27,17 @@ async def parse_upload(
         docintel_endpoint: 可选的 Azure Document Intelligence 端点 URL
     """
     try:
+        logger.info(f"Starting to parse uploaded file: {file.filename}")
+        
         result = parser.parse_bytes(
             await file.read(), 
             suffix="." + file.filename.split(".")[-1],
             docintel_endpoint=docintel_endpoint
         )
-        logger.info(f"Parsed uploaded file: {file.filename}")
+        logger.info(f"Successfully parsed uploaded file: {file.filename}")
         return build_response(data=result)
     except Exception as e:
-        logger.error(f"Error parsing uploaded file: {e}")
+        logger.error(f"Error parsing uploaded file {file.filename}: {e}")
         return build_response(code=500, message=str(e), data=None)
 
 
@@ -48,13 +50,15 @@ async def parse_url(request: ParseUrlRequest = Body(...)):
     """
     tmp_path = None
     try:
+        logger.info(f"Starting to parse file from URL: {request.file_url}")
+        
         suffix = os.path.splitext(request.file_url.split("?")[0])[1] or ".tmp"
         tmp_path = DownloadService.download_from_url(request.file_url, suffix)
         result = parser.parse_file(tmp_path, docintel_endpoint=request.docintel_endpoint)
-        logger.info(f"Parsed file from URL: {request.file_url}")
+        logger.info(f"Successfully parsed file from URL: {request.file_url}")
         return build_response(data=result)
     except Exception as e:
-        logger.error(f"Error parsing file from URL: {e}")
+        logger.error(f"Error parsing file from URL {request.file_url}: {e}")
         return build_response(code=500, message=str(e), data=None)
     finally:
         if tmp_path and os.path.exists(tmp_path):

@@ -2,8 +2,8 @@ import tempfile
 import os
 import re
 from markitdown import MarkItDown
-from loguru import logger
 from typing import Optional
+from app.utils.logger import logger
 
 class DocumentParser:
     def __init__(self):
@@ -59,6 +59,7 @@ class DocumentParser:
 
     def parse_bytes(self, data: bytes, suffix: str, docintel_endpoint: Optional[str] = None) -> dict:
         """支持从内存解析文件内容"""
+        logger.info(f"Parsing bytes data with suffix: {suffix}")
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             tmp.write(data)
             tmp_path = tmp.name
